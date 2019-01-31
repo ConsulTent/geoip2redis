@@ -1,0 +1,4 @@
+github.com/gocarina/gocsv v0.0.0-20190129143436-91f6fc13d488 h1:KKvJw2OFJn3Bh+BziYCFit6r4I70pjEfy9vtNXoxqD0=
+github.com/gocarina/gocsv v0.0.0-20190129143436-91f6fc13d488/go.mod h1:/oj50ZdPq/cUjA02lMZhijk5kR31SEydKyqah1OgBuo=
+github.com/rburmorrison/go-argue v0.0.0-20190107184430-e164876050e3 h1:xjilKszGRvn1TkOMF6I0u0setTSX7Z7CdkTH07KgZNo=
+github.com/rburmorrison/go-argue v0.0.0-20190107184430-e164876050e3/go.mod h1:Ej5Ce6Zfbsiirf177bneiuphAnetwQ1ygQJ2bpt5Kag=
