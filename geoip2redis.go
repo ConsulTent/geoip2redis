@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	//	"github.com/gocarina/gocsv"
+	"github.com/gocarina/gocsv"
 	"github.com/rburmorrison/go-argue"
-	//	"os"
-	"providers/ip2location_db1"
+	"os"
 )
 
 type cmdline struct {
@@ -21,9 +20,16 @@ const pver = "0.0.1"
 
 var gitver = "undefined"
 
+type csvstruct []struct{}
+
+var DEBUG bool = true
+
 func main() {
 
 	var cmds cmdline
+	var samples [][]string
+	var DBHDR string
+	//      var fakedata struct{}
 
 	fmt.Printf("GeoIP2Redis (c) 2019 ConsulTent Ltd. v%s-%s\n", pver, gitver)
 
@@ -31,15 +37,36 @@ func main() {
 
 	agmt.Dispute(true)
 
-	fmt.Println("cmds.CsvFile:", cmds.CsvFile)
-
 	switch cmds.Format {
 	case "maxmind":
 		fmt.Println("maxmind is not supported yet")
+		os.Exit(1)
 	case "ip2location":
-		fmt.Println("ip2location loading")
-		//		import "ip2location"
+		DBHDR = ip2location(cmds.InPrecision)
+
+		if DEBUG == true {
+			fmt.Printf("%#v", DBHDR)
+		}
+
 	default:
 		fmt.Println("Unknown format, please see --help")
+		os.Exit(1)
 	}
+
+	csvFile, err := os.OpenFile(cmds.CsvFile, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	defer csvFile.Close()
+
+	csvreader := gocsv.LazyCSVReader(csvFile)
+	samples, err = csvreader.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+
+	if DEBUG == true {
+		fmt.Printf("%#v", samples)
+	}
+
 }
