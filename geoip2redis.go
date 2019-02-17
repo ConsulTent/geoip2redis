@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cheggaaa/pb"
 	"github.com/gocarina/gocsv"
 	"github.com/keimoon/gore"
 	"github.com/rburmorrison/go-argue"
@@ -14,9 +15,9 @@ type cmdline struct {
 	Format       string `init:"f" options:"required" help:"ip2location|maxmind"`
 	RedisHost    string `init:"r" help:"Redis Host, default 127.0.0.1"`
 	RedisPort    int    `init:"p" help:"Redis Port, default 6379"`
-	RedisPass    string `init:"a" help:"Redis DB password, default none"`
-	InPrecision  int    `init:"i" options:"required" help:"Input precision.  This would be db file number.  See README.TXT"`
-	OutPrecision int    `init:"o" help:"Output Precision.  Default: 0 (match input), see README.TXT"`
+	RedisPass    string `init:"a" help:"Redis DB password, default none (unused)"`
+	InPrecision  int    `init:"i" options:"required" help:"Input precision.  This would be db file number. 1=DB1 for ip2location.  See README.TXT"`
+	OutPrecision int    `init:"o" help:"Output Precision.  Default: 0 (match input), see README.TXT (unused)"`
 	SkipHeader   bool   `init:"s" help:"Skip the first CSV line. Default: don't skip, see README.TXT"`
 }
 
@@ -39,6 +40,7 @@ func main() {
 	var DBHDR string
 	var index int
 	var iprange int
+	var bcounter int
 	//	var zcmd int64
 	//      var fakedata struct{}
 
@@ -91,6 +93,8 @@ func main() {
 		panic(err)
 	}
 
+	bcounter = len(samples)
+
 	/*
 		if DEBUG == true {
 			fmt.Printf("%#v", samples)
@@ -108,6 +112,8 @@ func main() {
 	}
 
 	defer redisdb.Close()
+
+	bar := pb.StartNew(bcounter)
 
 	i = 0 // i is the outer line range
 	for _, sample := range samples {
@@ -141,9 +147,11 @@ func main() {
 				panic(err)
 			}
 			rediscmd = ""
+			bar.Increment()
 		}
 		i++
 	}
 
-	fmt.Printf("Loaded %d entries\n", i)
+	bar.Finish()
+	fmt.Printf("Loaded %d entries into Redis\n", i)
 }
