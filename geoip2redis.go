@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/gocarina/gocsv"
 	"github.com/rburmorrison/go-argue"
 	"os"
+	"strconv"
 )
 
 type cmdline struct {
@@ -12,6 +14,7 @@ type cmdline struct {
 	Format         string `init:"f" options:"required" help:"ip2location|maxmind"`
 	RedisHost      string `init:"r" help:"Redis Host, default 127.0.0.1"`
 	RedisPort      int    `init:"p" help:"Redis Port, default 6379"`
+	RedisPass      string `init:"a" help:"Redis DB password, default none"`
 	InPrecision    int    `init:"i" options:"required" help:"Input precision.  This would be db file number.  See README.TXT"`
 	OutPrecision   int    `init:"o" help:"Output Precision.  Default: 0 (match input), see README.TXT"`
 	DontSkipHeader bool   `init:"s" help:"DON'T Skip the first CSV line. Default: skip, see README.TXT"`
@@ -37,6 +40,8 @@ func main() {
 	var samples [][]string
 	var DBHDR string
 	var index int
+	var iprange int
+	var zcmd int64
 	//      var fakedata struct{}
 
 	fmt.Printf("GeoIP2Redis (c) 2019 ConsulTent Ltd. v%s-%s\n", pver, gitver)
@@ -95,7 +100,22 @@ func main() {
 			fmt.Printf("%#v", samples)
 		}
 	*/
-	// Put the redis connection shit here
+	// Put the redis connection stuff here
+
+	if DEBUG == true {
+		fmt.Printf("RedisHost: %s, RedisPort: %d\n", cmds.RedisHost, cmds.RedisPort)
+	}
+
+	redisdb := redis.NewClient(&redis.Options{
+		Addr:     cmds.RedisHost + ":" + strconv.Itoa(cmds.RedisPort), // use default Addr
+		Password: cmds.RedisPass,                                      // no password set
+		DB:       0,                                                   // use default DB
+	})
+
+	_, err = redisdb.Ping().Result()
+	if err != nil {
+		//	panic(err)
+	}
 
 	i = 0 // i is the outer line range
 	for _, sample := range samples {
@@ -105,7 +125,11 @@ func main() {
 				if !(skipcol == x) {
 					//push unto string array
 					index = len(rediscmd)
-					rediscmd = rediscmd[:index] + " " + cell
+					if x == 0 {
+						rediscmd = rediscmd[:index] + cell + " \"" + cell
+					} else {
+						rediscmd = rediscmd[:index] + "|" + cell
+					}
 				} //skipcol
 			} //skiphdr
 			x++
@@ -115,7 +139,10 @@ func main() {
 		if len(rediscmd) == 0 {
 			fmt.Printf("Skipped Header\n")
 		} else {
-			fmt.Printf("REDIS<: %s, x: %d, i: %d\n", rediscmd, x, i)
+			index = len(rediscmd)
+			rediscmd = rediscmd[:index] + "\""
+			// if DEBUG == true { fmt.Printf("REDIS<: %s\nx: %d, i: %d\n", rediscmd, x, i) }
+			zcmd, err = redisdb.ZAdd(DBHDR, iprange, rediscmd).Result()
 			rediscmd = ""
 		}
 		i++

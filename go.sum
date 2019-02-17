@@ -1,3 +1,5 @@
+github.com/go-redis/redis v6.15.1+incompatible h1:BZ9s4/vHrIqwOb0OPtTQ5uABxETJ3NRuUNoSUurnkew=
+github.com/go-redis/redis v6.15.1+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/gocarina/gocsv v0.0.0-20190129143436-91f6fc13d488 h1:KKvJw2OFJn3Bh+BziYCFit6r4I70pjEfy9vtNXoxqD0=
 github.com/gocarina/gocsv v0.0.0-20190129143436-91f6fc13d488/go.mod h1:/oj50ZdPq/cUjA02lMZhijk5kR31SEydKyqah1OgBuo=
 github.com/rburmorrison/go-argue v0.0.0-20190107184430-e164876050e3 h1:xjilKszGRvn1TkOMF6I0u0setTSX7Z7CdkTH07KgZNo=
