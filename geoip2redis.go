@@ -27,7 +27,7 @@ var gitver = "undefined"
 
 type csvstruct []struct{}
 
-var DEBUG = true
+var DEBUG = false
 
 func main() {
 
@@ -56,6 +56,9 @@ func main() {
 		os.Exit(1)
 	case "ip2location":
 		DBHDR = ip2location(cmds.InPrecision)
+		if DBHDR == "DB0" {
+			fmt.Println("WARNING: Format out of range for ip2locartion.\nProceeding with set DB0")
+		}
 		skipcol = 1
 		if DEBUG == true {
 			fmt.Printf("ip2location skipcol: %d\n", skipcol)
@@ -139,7 +142,7 @@ func main() {
 		if len(rediscmd) == 0 {
 			fmt.Printf("Skipped Header\n")
 		} else {
-			index = len(rediscmd)
+			//index = len(rediscmd)
 			//		rediscmd = rediscmd[:index] + "\""
 			// if DEBUG == true { fmt.Printf("REDIS<: %s\nx: %d, i: %d\n", rediscmd, x, i) }
 			_, err = gore.NewCommand("ZADD", DBHDR, iprange, rediscmd).Run(redisdb)
