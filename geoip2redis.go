@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/gocarina/gocsv"
 	"github.com/keimoon/gore"
 	"github.com/rburmorrison/go-argue"
 	"os"
@@ -11,29 +11,39 @@ import (
 )
 
 type cmdline struct {
-	CsvFile      string `options:"required,positional" help:"CSV file with GeoIP data"`
-	Format       string `init:"f" options:"required" help:"ip2location|maxmind"`
-	RedisHost    string `init:"r" help:"Redis Host, default 127.0.0.1"`
-	RedisPort    int    `init:"p" help:"Redis Port, default 6379"`
-	RedisPass    string `init:"a" help:"Redis DB password, default none (unused)"`
-	InPrecision  int    `init:"i" options:"required" help:"Input precision.  This would be db file number. 1=DB1 for ip2location.  See README.TXT"`
-	OutPrecision int    `init:"o" help:"Output Precision.  Default: 0 (match input), see README.TXT (unused)"`
-	SkipHeader   bool   `init:"s" help:"Skip the first CSV line. Default: don't skip, see README.TXT"`
+	CsvFile         string `options:"required,positional" help:"CSV file with GeoIP data"`
+	Format          string `init:"f" options:"required" help:"ip2location|software77"`
+	RedisHost       string `init:"r" help:"Redis Host, default 127.0.0.1"`
+	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
+	RedisPass       string `init:"a" help:"Redis DB password, default none (unused)"`
+	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
+	ForceAutodetect bool   `init:"t" help:"Force autodetect.  Optional.  This will ignore input precision, and set a default header"`
+	SkipHeader      bool   `init:"s" help:"Foce skip the first CSV line. Default: follows format, see README.TXT"`
 }
 
-const pver = "0.0.2"
+type GenericCsvFormat struct {
+	Ident      string
+	Iprangecol int
+	Dbrangemax []int
+	Skiplines  []int
+	Skipcols   []int
+	Header     string
+	Formatin   int
+	RedisCMD   string
+	Autodetect bool
+	Status     bool
+}
+
+const pver = "0.0.3"
 
 var gitver = "undefined"
 
-type csvstruct []struct{}
-
-var DEBUG = false
+var DEBUG = true
 
 func main() {
 
-	var i uint64
-	var x uint8
-	var skipcol uint8
+	var i int
+	var x int
 	var rediscmd string
 	var cmds cmdline
 	var samples [][]string
@@ -41,6 +51,11 @@ func main() {
 	var index int
 	var iprange int
 	var bcounter int
+
+	var CSVinfo GenericCsvFormat
+	var Ip2info Ip2LocationCSV
+	var S77info Software77CSV
+
 	//	var zcmd int64
 	//      var fakedata struct{}
 
@@ -55,21 +70,26 @@ func main() {
 		fmt.Println("maxmind is not supported yet")
 		os.Exit(1)
 	case "ip2location":
-		DBHDR = ip2location(cmds.InPrecision)
-		if DBHDR == "DB0" {
-			fmt.Println("WARNING: Format out of range for ip2locartion.\nProceeding with set DB0")
+		Ip2info = ip2location(cmds.InPrecision, cmds.ForceAutodetect)
+		CSVinfo = Ip2info.GenericCsvFormat
+		if CSVinfo.Status == false {
+			fmt.Printf("Database format out of range for %s\n", cmds.Format)
+			os.Exit(1)
 		}
-		skipcol = 1
-		if DEBUG == true {
-			fmt.Printf("ip2location skipcol: %d\n", skipcol)
+		if CSVinfo.Autodetect == true {
+			fmt.Println("Autodetecting ip2location db format.")
 		}
-
-		if DEBUG == true {
-			fmt.Printf("%#v\n", DBHDR)
-		} else {
-			fmt.Printf("Using %s with %s format.\n", cmds.Format, DBHDR)
+	case "ip2location/asn":
+		if cmds.ForceAutodetect == false {
+			fmt.Println("ASN format only available with autodetect")
+			os.Exit(1)
 		}
-
+		Ip2info = ip2location(cmds.InPrecision, cmds.ForceAutodetect)
+		CSVinfo = Ip2info.GenericCsvFormat
+		CSVinfo.Header = "ASN"
+	case "software77":
+		S77info = software77(cmds.InPrecision)
+		CSVinfo = S77info.GenericCsvFormat
 	default:
 		fmt.Println("Unknown format, please see --help")
 		os.Exit(1)
@@ -84,25 +104,44 @@ func main() {
 		fmt.Println("WARNING: Skipping header!")
 	}
 
-	csvFile, err := os.OpenFile(cmds.CsvFile, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	csvFile, err := os.Open(cmds.CsvFile)
 	if err != nil {
 		panic(err)
 	}
 	defer csvFile.Close()
 
-	csvreader := gocsv.LazyCSVReader(csvFile)
+	csvreader := csv.NewReader(csvFile)
+	//Configure reader options Ref http://golang.org/src/pkg/encoding/csv/reader.go?s=#L81
+	csvreader.Comma = ','         //field delimiter
+	csvreader.Comment = '#'       //Comment character
+	csvreader.FieldsPerRecord = 0 //Number of records per record. Set to Negative value for variable
+	csvreader.TrimLeadingSpace = true
+	csvreader.ReuseRecord = true
+
 	samples, err = csvreader.ReadAll()
 	if err != nil {
 		panic(err)
 	}
 
+	if DEBUG == true {
+		fmt.Printf("Columns: %d\n", csvreader.FieldsPerRecord)
+	}
+
+	DBHDR = CSVinfo.DbOutHdr()
+
+	if CSVinfo.Autodetect == true {
+		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) == true {
+			fmt.Printf("Warning: Detected too many fields (%d), max is (%d), proceed with caution!\n", csvreader.FieldsPerRecord, CSVinfo.MaxDB())
+		}
+		fmt.Printf("Using set %s for autodetection", DBHDR)
+	}
+
+	if DEBUG == true {
+		fmt.Printf("DBHDR: %s, %d, %s\n", DBHDR, CSVinfo.Formatin, CSVinfo.DbOutHdr())
+	}
+
 	bcounter = len(samples)
 
-	/*
-		if DEBUG == true {
-			fmt.Printf("%#v", samples)
-		}
-	*/
 	// Put the redis connection stuff here
 
 	if DEBUG == true {
@@ -122,11 +161,11 @@ func main() {
 	for _, sample := range samples {
 		x = 0 // x is the inner column range
 		for _, cell := range sample {
-			if !(i == 0 && cmds.SkipHeader == true) {
-				if !(skipcol == x) {
+			if CSVinfo.DoSkipLine(i) == false {
+				if CSVinfo.DoSkipCol(x) == false {
 					//push unto string array
 					index = len(rediscmd)
-					if x == 0 {
+					if x == CSVinfo.Iprangecol {
 						iprange, _ = strconv.Atoi(cell)
 						//		rediscmd = rediscmd[:index] + cell + " \"" + cell
 						rediscmd = rediscmd[:index] + cell
@@ -145,7 +184,7 @@ func main() {
 			//index = len(rediscmd)
 			//		rediscmd = rediscmd[:index] + "\""
 			// if DEBUG == true { fmt.Printf("REDIS<: %s\nx: %d, i: %d\n", rediscmd, x, i) }
-			_, err = gore.NewCommand("ZADD", DBHDR, iprange, rediscmd).Run(redisdb)
+			_, err = gore.NewCommand(CSVinfo.RedisCMD, DBHDR, iprange, rediscmd).Run(redisdb)
 			if err != nil {
 				panic(err)
 			}
