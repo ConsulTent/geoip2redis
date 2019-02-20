@@ -38,7 +38,7 @@ const pver = "0.0.3"
 
 var gitver = "undefined"
 
-var DEBUG = true
+var DEBUG = false
 
 func main() {
 
@@ -80,6 +80,10 @@ func main() {
 			fmt.Println("Autodetecting ip2location db format.")
 		}
 	case "ip2location/asn":
+		// ASN is a hack and broken.  We need to create a new definition for it
+		// and use ip2long
+		fmt.Println("ASN not supported.")
+		os.Exit(2)
 		if cmds.ForceAutodetect == false {
 			fmt.Println("ASN format only available with autodetect")
 			os.Exit(1)
@@ -133,11 +137,13 @@ func main() {
 		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) == true {
 			fmt.Printf("Warning: Detected too many fields (%d), max is (%d), proceed with caution!\n", csvreader.FieldsPerRecord, CSVinfo.MaxDB())
 		}
-		fmt.Printf("Using set %s for autodetection", DBHDR)
+		fmt.Printf("Using set %s for autodetection\n", DBHDR)
 	}
 
 	if DEBUG == true {
 		fmt.Printf("DBHDR: %s, %d, %s\n", DBHDR, CSVinfo.Formatin, CSVinfo.DbOutHdr())
+	} else {
+		fmt.Printf("Loading into set %s\n", CSVinfo.DbOutHdr())
 	}
 
 	bcounter = len(samples)

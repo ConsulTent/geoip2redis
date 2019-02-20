@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 )
 
 func (g GenericCsvFormat) Id() string {
@@ -47,6 +48,26 @@ func (g GenericCsvFormat) DoSkipCol(s int) bool {
 		}
 	}
 	return false
+}
+
+func ip2long(ip string) int {
+	var data string
+	pos := strings.Index(ip, "/")
+
+	if !(pos == -1) {
+		data = ip[0:pos]
+	} else {
+		data = ip
+	}
+
+	a := uint32(data[12])
+	b := uint32(data[13])
+	c := uint32(data[14])
+	d := uint32(data[15])
+
+	converted := int(a<<24 | b<<16 | c<<8 | d)
+
+	return converted
 }
 
 // genericCsv is just a template
