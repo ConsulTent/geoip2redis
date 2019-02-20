@@ -3,10 +3,12 @@
  Loader of Multiple GeoIP providers to Redis
 
 We currently support the following providers (* partially)
-* [IP2Location](https://lite.ip2location.com/database/ip-country) *
+
+* [IP2Location](https://lite.ip2location.com/database/ip-country)
 * [Software77](http://software77.net/geo-ip/)
 
-geoip2redis primarilly supports DB1 from IP2Location, but with Auto mode enabled can load any of their standard IPv4 databases~~, including their ASN database in DB1 format~~. (ASN is currently broken)
+
+geoip2redis primarilly supports DB1 from IP2Location, but with Auto mode enabled can load any of their standard IPv4 databases ~~, including their ASN database in DB1 format~~. (ASN is currently broken)
 It can also load Software77's database either in it's native format, or convert it on the fly to IP2Location format, making them interchangeable.
 
 ### Examples:
