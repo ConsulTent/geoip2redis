@@ -21,6 +21,12 @@ It can also load Software77's database either in it's native format, or convert 
 Please install the [golang/vgo](https://github.com/golang/go/wiki/vgo) package before running ./build.sh to build the app.
 
 
+### TODO
+A LOT
+1. testing - need to add golang tests
+2. Deal with conversion formats
+3. Add support for Redis passwords
+4. Add more GEOIP sources.   Suggestions welcome!
 
 
 
