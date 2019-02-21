@@ -21,6 +21,8 @@ It can also load Software77's database either in it's native format, or convert 
 Please install the [golang/vgo](https://github.com/golang/go/wiki/vgo) package before running ./build.sh to build the app.
 
 
+Please check out the [the Wiki](https://github.com/ConsulTent/geoip2redis/wiki) for more info.
+
 ### TODO
 A LOT
 1. testing - need to add golang tests
