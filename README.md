@@ -1,5 +1,7 @@
 # geoip2redis
 
+***WARNING:***. This software is still alpha and constantly changing.
+
  Loader of Multiple GeoIP providers to Redis
 
 We currently support the following providers (* partially)
