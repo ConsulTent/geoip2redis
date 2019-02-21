@@ -59,7 +59,7 @@ func software77(informat int) (g Software77CSV) {
 			Iprangecol: 0,
 			Dbrangemax: []int{0, 1},
 			Skiplines:  []int{},
-			Skipcols:   []int{1, 2, 3, 5},
+			Skipcols:   []int{1},
 			Header:     "BRM",
 			Formatin:   informat,
 			RedisCMD:   "ZADD",
@@ -71,7 +71,7 @@ func software77(informat int) (g Software77CSV) {
 	}
 
 	if informat == 1 {
-		g.GenericCsvFormat.Skipcols = []int{1}
+		g.GenericCsvFormat.Skipcols = []int{1, 2, 3, 5}
 		g.GenericCsvFormat.Header = "DB"
 	}
 
