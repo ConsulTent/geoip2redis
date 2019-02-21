@@ -59,7 +59,7 @@ func software77(informat int) (g Software77CSV) {
 			Iprangecol: 0,
 			Dbrangemax: []int{0, 1},
 			Skiplines:  []int{},
-			Skipcols:   []int{1},
+			Skipcols:   []int{1, 3},
 			Header:     "BRM",
 			Formatin:   informat,
 			RedisCMD:   "ZADD",
