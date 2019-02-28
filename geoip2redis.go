@@ -48,6 +48,7 @@ func main() {
 	var cmds cmdline
 	var samples [][]string
 	var DBHDR string
+	var DBHDRtemp string
 	var index int
 	var iprange int
 	var bcounter int
@@ -161,6 +162,21 @@ func main() {
 
 	defer redisdb.Close()
 
+	rep, err := gore.NewCommand("KEYS", DBHDR).Run(redisdb)
+	if err != nil {
+		fmt.Println("Error getting keys.")
+	}
+	srep, _ := rep.Array()
+	if DEBUG == true {
+		//	fmt.Printf("rep: %#v", rep.Error())
+		fmt.Println("srep: ", srep)
+	}
+	if len(srep) > 0 {
+		DBHDRtemp = DBHDR
+		DBHDR = DBHDR + "X"
+		fmt.Println("Live migration detected.  Using temporary DB: ", DBHDR)
+	}
+
 	bar := pb.StartNew(bcounter)
 
 	i = 0 // i is the outer line range
@@ -201,5 +217,17 @@ func main() {
 	}
 
 	bar.Finish()
+
+	if len(DBHDRtemp) > 0 {
+		_, err := gore.NewCommand("DEL", DBHDRtemp).Run(redisdb)
+		if err != nil {
+			fmt.Println("Error deleting ", DBHDRtemp)
+		}
+		_, err = gore.NewCommand("RENAME", DBHDR, DBHDRtemp).Run(redisdb)
+		if err != nil {
+			fmt.Println("Error renaming ", DBHDR)
+		}
+	}
+
 	fmt.Printf("Loaded %d entries into Redis\n", i)
 }
