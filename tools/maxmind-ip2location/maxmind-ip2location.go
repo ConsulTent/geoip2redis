@@ -48,6 +48,7 @@ type cmdline struct {
 	MaxMindCSV  string `options:"required,positional" help:"Maxmind 'blocks' CSV file."`
 	LocationCSV string `options:"required,positional" help:"Maxmind 'location' CSV file."`
 	Ip2Location string `options:"required,positional" help:"Output CSV file in ip2location format."`
+	UseTimezone bool   `init:"t" help:"Fallback to Timezone city, when there's no data."`
 }
 
 const pver = "1.0"
@@ -127,7 +128,7 @@ func main() {
 																			   outline = "\"" + cell + "\""
 																			//	outline = cell
 																		 } else {
-																			 	if x == 11 && len(cell) == 0 {
+																			 	if x == 11 && len(cell) == 0 && cmds.UseTimezone == true {
 																					isocityreserve = true
 																				} else {
 																				 	outline = outline[:index] + ",\"" + cell + "\""
@@ -135,7 +136,7 @@ func main() {
 																		    }
 																		}
 												 } else {
-													 if x == 13 && isocityreserve == true {
+													 if x == 13 && isocityreserve == true && cmds.UseTimezone == true {
 														 isocity := strings.Split(cell,"/")
 														 outline = outline[:index] + ",\"" + isocity[1] + "\""
 													 }
