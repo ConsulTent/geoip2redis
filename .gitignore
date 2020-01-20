@@ -1,1 +1,3 @@
 geoip2redis
+tools/ip2long/ip2long
+tools/maxmind-ip2location/maxmind-ip2location

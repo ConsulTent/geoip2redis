@@ -17,6 +17,7 @@ type cmdline struct {
 	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
 	RedisPass       string `init:"a" help:"Redis DB password, default none (unused)"`
 	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
+  ForceDbhdr			string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
 	ForceAutodetect bool   `init:"t" help:"Force autodetect.  Optional.  This will ignore input precision, and set a default header"`
 	SkipHeader      bool   `init:"s" help:"Foce skip the first CSV line. Default: follows format, see README.TXT"`
 }
@@ -132,7 +133,11 @@ func main() {
 		fmt.Printf("Columns: %d\n", csvreader.FieldsPerRecord)
 	}
 
-	DBHDR = CSVinfo.DbOutHdr()
+	if len(cmds.ForceDbhdr) == 0 {
+	   DBHDR = CSVinfo.DbOutHdr()
+  } else {
+		DBHDR = cmds.ForceDbhdr
+	}
 
 	if CSVinfo.Autodetect == true {
 		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) == true {
