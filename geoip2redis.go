@@ -149,7 +149,7 @@ func main() {
 	if DEBUG == true {
 		fmt.Printf("DBHDR: %s, %d, %s\n", DBHDR, CSVinfo.Formatin, CSVinfo.DbOutHdr())
 	} else {
-		fmt.Printf("Loading into set %s\n", CSVinfo.DbOutHdr())
+		fmt.Printf("Loading into set %s\n", DBHDR)
 	}
 
 	bcounter = len(samples)
