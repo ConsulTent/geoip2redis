@@ -51,11 +51,11 @@ type cmdline struct {
 	UseTimezone bool   `init:"t" help:"Fallback to Timezone city, when there's no data."`
 }
 
-const pver = "1.0"
+const pver = "0.1"
 
 var gitver = "undefined"
 
-var DEBUG = true
+var DEBUG = false
 
 func main() {
 	var i,x int
