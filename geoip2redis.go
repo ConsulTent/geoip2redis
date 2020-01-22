@@ -171,16 +171,18 @@ func main() {
 
 	defer redisClient.Close()
 
-	rep, err := gore.NewCommand("KEYS", DBHDR).Run(redisdb)
+	rep, err := redisClient.Keys(DBHDR).Result()
 	if err != nil {
-		fmt.Println("Error getting keys.")
+		fmt.Println("No subkeys found.")
 	}
-	srep, _ := rep.Array()
+
+/*	srep, _ := rep.Array()
 	if DEBUG == true {
 		//	fmt.Printf("rep: %#v", rep.Error())
 		fmt.Println("srep: ", srep)
-	}
-	if len(srep) > 0 {
+	} */
+
+	if len(rep) > 0 {
 		DBHDRtemp = DBHDR
 		DBHDR = DBHDR + "X"
 		fmt.Println("Live migration detected.  Using temporary DB: ", DBHDR)
@@ -229,11 +231,11 @@ func main() {
 	bar.Finish()
 
 	if len(DBHDRtemp) > 0 {
-		_, err := gore.NewCommand("DEL", DBHDRtemp).Run(redisdb)
+		_, err = redisClient.Do("DEL", DBHDRtemp).Result()
 		if err != nil {
 			fmt.Println("Error deleting ", DBHDRtemp)
 		}
-		_, err = gore.NewCommand("RENAME", DBHDR, DBHDRtemp).Run(redisdb)
+		_, err = redisClient.Do("RENAME", DBHDR, DBHDRtemp).Result()
 		if err != nil {
 			fmt.Println("Error renaming ", DBHDR)
 		}
