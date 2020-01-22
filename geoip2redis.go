@@ -4,8 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/keimoon/gore"
+	"github.com/go-redis/redis"
 	"github.com/rburmorrison/go-argue"
+	"log"
 	"os"
 	"strconv"
 )
@@ -17,7 +18,7 @@ type cmdline struct {
 	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
 	RedisPass       string `init:"a" help:"Redis DB password, default none (unused)"`
 	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
-  ForceDbhdr			string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
+	ForceDbhdr      string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
 	ForceAutodetect bool   `init:"t" help:"Force autodetect.  Optional.  This will ignore input precision, and set a default header"`
 	SkipHeader      bool   `init:"s" help:"Foce skip the first CSV line. Default: follows format, see README.TXT"`
 }
@@ -35,7 +36,7 @@ type GenericCsvFormat struct {
 	Status     bool
 }
 
-const pver = "0.0.3"
+const pver = "0.0.4"
 
 var gitver = "undefined"
 
@@ -133,8 +134,8 @@ func main() {
 	}
 
 	if len(cmds.ForceDbhdr) == 0 {
-	   DBHDR = CSVinfo.DbOutHdr()
-  } else {
+		DBHDR = CSVinfo.DbOutHdr()
+	} else {
 		DBHDR = cmds.ForceDbhdr
 	}
 
@@ -159,12 +160,15 @@ func main() {
 		fmt.Printf("RedisHost: %s, RedisPort: %d\n", cmds.RedisHost, cmds.RedisPort)
 	}
 
-	redisdb, err := gore.Dial(cmds.RedisHost + ":" + strconv.Itoa(cmds.RedisPort))
+	redisClient := redis.NewClient(&redis.Options{Addr: fmt.Sprintf("%v:%v", cmds.RedisHost, cmds.RedisPort),
+		Password: cmds.RedisPass, DB: 0})
+	_, err = redisClient.Ping().Result()
 	if err != nil {
-		panic(err)
+		log.Printf("[ERROR] unable to ping redis client, error : %v", err)
+		os.Exit(1)
 	}
 
-	defer redisdb.Close()
+	defer redisClient.Close()
 
 	bar := pb.StartNew(bcounter)
 
@@ -195,10 +199,11 @@ func main() {
 			//index = len(rediscmd)
 			//		rediscmd = rediscmd[:index] + "\""
 			// if DEBUG == true { fmt.Printf("REDIS<: %s\nx: %d, i: %d\n", rediscmd, x, i) }
-			_, err = gore.NewCommand(CSVinfo.RedisCMD, DBHDR, iprange, rediscmd).Run(redisdb)
+			_, err = redisClient.Do(CSVinfo.RedisCMD, DBHDR, iprange, rediscmd).Result()
 			if err != nil {
 				panic(err)
 			}
+
 			rediscmd = ""
 			bar.Increment()
 		}
