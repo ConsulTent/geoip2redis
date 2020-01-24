@@ -36,7 +36,7 @@ type GenericCsvFormat struct {
 	Status     bool
 }
 
-const pver = "0.0.4"
+const pver = "0.9.0"
 
 var gitver = "undefined"
 
