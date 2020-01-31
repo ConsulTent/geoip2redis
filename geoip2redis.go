@@ -36,7 +36,7 @@ type GenericCsvFormat struct {
 	Status     bool
 }
 
-const pver = "0.9.0"
+const pver = "0.9.1"
 
 var gitver = "undefined"
 
@@ -175,12 +175,6 @@ func main() {
 	if err != nil {
 		fmt.Println("No subkeys found.")
 	}
-
-/*	srep, _ := rep.Array()
-	if DEBUG == true {
-		//	fmt.Printf("rep: %#v", rep.Error())
-		fmt.Println("srep: ", srep)
-	} */
 
 	if len(rep) > 0 {
 		DBHDRtemp = DBHDR
