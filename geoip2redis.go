@@ -16,7 +16,7 @@ type cmdline struct {
 	Format          string `init:"f" options:"required" help:"ip2location|software77"`
 	RedisHost       string `init:"r" help:"Redis Host, default 127.0.0.1"`
 	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
-	RedisPass       string `init:"a" help:"Redis DB password, default none (unused)"`
+	RedisPass       string `init:"a" help:"Redis DB password, default none"`
 	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
 	ForceDbhdr      string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
 	ForceAutodetect bool   `init:"t" help:"Force autodetect.  Optional.  This will ignore input precision, and set a default header"`
@@ -62,7 +62,7 @@ func main() {
 	//	var zcmd int64
 	//      var fakedata struct{}
 
-	fmt.Printf("GeoIP2Redis (c) 2019 ConsulTent Ltd. v%s-%s\n", pver, gitver)
+	fmt.Printf("GeoIP2Redis (c) 2020 ConsulTent Ltd. v%s-%s\n", pver, gitver)
 
 	agmt := argue.NewEmptyArgumentFromStruct(&cmds)
 
