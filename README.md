@@ -1,7 +1,7 @@
 ![GeoIP2Redis](https://user-images.githubusercontent.com/691270/73528553-0e86a900-4450-11ea-80a8-5d603ddfbfd7.png)
 
 
-Loader of Multiple GeoIP providers to Redis.  Now with **live migration**!
+Loader of Multiple GeoIP providers to Redis.  Now with **[LIVE MIGRATION](https://github.com/ConsulTent/geoip2redis/wiki/Live-Migration)**!
 
 ##### The goal of GeoIP2Redis is to standardise all GeoIP formats into a standard CSV format (based on Ip2Location) that can be queried using Redis via subkeys.
 
