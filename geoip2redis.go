@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 type cmdline struct {
@@ -36,7 +37,7 @@ type GenericCsvFormat struct {
 	Status     bool
 }
 
-const pver = "0.9.1"
+const pver = "0.9.2"
 
 var gitver = "undefined"
 
@@ -162,7 +163,7 @@ func main() {
 	}
 
 	redisClient := redis.NewClient(&redis.Options{Addr: fmt.Sprintf("%v:%v", cmds.RedisHost, cmds.RedisPort),
-		Password: cmds.RedisPass, DB: 0})
+		Password: cmds.RedisPass, DB: 0, ReadTimeout: time.Minute, WriteTimeout: time.Minute})
 	_, err = redisClient.Ping().Result()
 	if err != nil {
 		log.Printf("[ERROR] unable to ping redis client, error : %v", err)
@@ -228,10 +229,12 @@ func main() {
 		_, err = redisClient.Do("DEL", DBHDRtemp).Result()
 		if err != nil {
 			fmt.Println("Error deleting ", DBHDRtemp)
+			fmt.Println(err)
 		}
 		_, err = redisClient.Do("RENAME", DBHDR, DBHDRtemp).Result()
 		if err != nil {
 			fmt.Println("Error renaming ", DBHDR)
+			fmt.Println(err)
 		}
 	}
 
