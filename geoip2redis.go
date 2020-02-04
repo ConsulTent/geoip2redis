@@ -55,6 +55,7 @@ func main() {
 	var index int
 	var iprange int
 	var bcounter int
+	var finalcount int
 
 	var CSVinfo GenericCsvFormat
 	var Ip2info Ip2LocationCSV
@@ -180,7 +181,7 @@ func main() {
 	if len(rep) > 0 {
 		DBHDRtemp = DBHDR
 		DBHDR = DBHDR + "X"
-		fmt.Println("Live migration detected.  Using temporary DB: ", DBHDR)
+		fmt.Println("Live migration detected.  Using temporary set: ", DBHDR)
 	}
 
 	bar := pb.StartNew(bcounter)
@@ -224,6 +225,17 @@ func main() {
 	}
 
 	bar.Finish()
+
+	// Verify loaded count with bcounter
+	fcount := redisClient.ZCount(DBHDR, "0", "+inf")
+
+	finalcount = int(fcount.Val())
+
+	if finalcount-bcounter != 0 {
+		fmt.Println("Loaded count mismatch: ", finalcount)
+		fmt.Println("Please do manual clean up of ", DBHDR)
+		os.Exit(2)
+	}
 
 	if len(DBHDRtemp) > 0 {
 		_, err = redisClient.Do("DEL", DBHDRtemp).Result()
