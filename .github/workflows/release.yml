@@ -5,9 +5,9 @@ jobs:
     name: release linux/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
@@ -17,9 +17,9 @@ jobs:
     name: release linux/arm
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: arm
@@ -29,9 +29,9 @@ jobs:
     name: release linux/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: arm64
@@ -41,9 +41,9 @@ jobs:
       name: release dragonfly/amd64
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1.0.3
       - name: compile and release
-        uses: ConsulTent/go-release.action@master
+        uses: ConsulTent/go-release.action@v1.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOARCH: amd64
@@ -53,9 +53,9 @@ jobs:
     name: release darwin/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
@@ -65,9 +65,9 @@ jobs:
     name: release windows/386
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
@@ -77,9 +77,9 @@ jobs:
     name: release windows/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.3
     - name: compile and release
-      uses: ConsulTent/go-release.action@master
+      uses: ConsulTent/go-release.action@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
