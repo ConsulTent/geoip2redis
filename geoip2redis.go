@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/cheggaaa/pb"
-	"github.com/go-redis/redis"
-	"github.com/rburmorrison/go-argue"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/cheggaaa/pb"
+	"github.com/go-redis/redis"
+	argue "github.com/rburmorrison/go-argue"
 )
 
 type cmdline struct {
@@ -37,7 +38,7 @@ type GenericCsvFormat struct {
 	Status     bool
 }
 
-const pver = "0.9.2"
+const pver = "0.9.3"
 
 var gitver = "undefined"
 
