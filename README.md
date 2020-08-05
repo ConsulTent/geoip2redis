@@ -33,6 +33,9 @@ Please check out the [the Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki) 
 3. Add more GEOIP sources.   Suggestions welcome!
 
 
+### Disclaimer
+IP2Location, Maxmind, Software77 and Redis are trademarks of respective owners.
+
 
 (c) 2020 ConsulTent Ltd.  http://consultent.ltd
 
