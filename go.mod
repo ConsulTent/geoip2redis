@@ -1,4 +1,4 @@
-module consultent/go-geoip2redis
+module github.com/ConsulTent/geoip2redis
 
 require (
 	github.com/cheggaaa/pb v2.0.6+incompatible
