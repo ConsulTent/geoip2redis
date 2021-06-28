@@ -65,7 +65,7 @@ func main() {
 	//	var zcmd int64
 	//      var fakedata struct{}
 
-	fmt.Printf("GeoIP2Redis (c) 2020 ConsulTent Ltd. v%s-%s\n", pver, gitver)
+	fmt.Printf("GeoIP2Redis (c) 2021 ConsulTent Pte. Ltd. v%s-%s\n", pver, gitver)
 
 	agmt := argue.NewEmptyArgumentFromStruct(&cmds)
 

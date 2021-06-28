@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/rburmorrison/go-argue"
 	"net"
+
+	"github.com/rburmorrison/go-argue"
 )
 
 func ip2long(ip string) uint32 {
@@ -34,7 +35,7 @@ func main() {
 	long = ip2long(cmds.Rawip)
 
 	if cmds.Silent == false {
-		fmt.Printf("ip2long (c) 2019 ConsulTent Ltd. v%s-%s\n", pver, gitver)
+		fmt.Printf("ip2long (c) 2021 ConsulTent Pte. Ltd. v%s-%s\n", pver, gitver)
 		fmt.Printf("IP4v: %s -> %d\n", cmds.Rawip, long)
 	} else {
 		fmt.Println(long)

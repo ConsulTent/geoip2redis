@@ -37,6 +37,6 @@ Please check out the [the Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki) 
 IP2Location, Maxmind, Software77 and Redis are trademarks of respective owners.
 
 
-(c) 2020 ConsulTent Ltd.  http://consultent.ltd
+(c) 2021 ConsulTent Pte. Ltd.  https://consultent.ltd
 
 <a href="https://www.ip2location.com/?rid=1415"><img src="https://www.ip2location.com/assets/img/affiliate_728x90.jpg" width="728" height="90" alt="Leading IP Geolocation solution provider to pinpoint the location of an IP address" /></a>
