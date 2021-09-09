@@ -1,18 +1,24 @@
-package main
+package maxmind_ip2location
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/cheggaaa/pb"
-	"github.com/rburmorrison/go-argue"
+	spinner "github.com/consultent/go-spinner"
 )
 
 // ip2location header format:
@@ -42,22 +48,11 @@ func ip2long(ip string) uint32 {
 	return long
 }
 
-type cmdline struct {
-	MaxMindCSV  string `options:"required,positional" help:"Maxmind 'blocks' CSV file."`
-	LocationCSV string `options:"required,positional" help:"Maxmind 'location' CSV file."`
-	Ip2Location string `options:"required,positional" help:"Output CSV file in ip2location format."`
-	UseTimezone bool   `init:"t" help:"Fallback to Timezone city, when there's no data."`
-}
-
-const pver = "0.1"
-
-var gitver = "undefined"
-
 var DEBUG = false
 
-func main() {
+func MaxMind_Merge(mmcsv string, lcsv string, tz bool, tmpdir ...string) string {
+	var TempFile string
 	var i, x int
-	var cmds cmdline
 	//	var long uint32
 	var locs map[int]string
 	var outline string
@@ -73,15 +68,10 @@ func main() {
 	var Error error
 	//  var iprange int
 
-	agmt := argue.NewEmptyArgumentFromStruct(&cmds)
-
-	agmt.Dispute(true)
-
 	//	long = ip2long(cmds.Rawip)
 
-	fmt.Printf("maxmind->ip2location (c) 2021 ConsulTent Pte. Ltd. v%s-%s\n", pver, gitver)
-
-	DataFile, err := os.Open(cmds.LocationCSV)
+	fmt.Printf("Loading MaxMind Location data into hash table.\n")
+	DataFile, err := os.Open(lcsv)
 	if err != nil {
 		panic(err)
 	}
@@ -105,8 +95,6 @@ func main() {
 		fmt.Printf("Columns: %d\n", csvreader.FieldsPerRecord)
 	}
 
-	fmt.Printf("Loading locations into hash table.\n")
-
 	locs = make(map[int]string)
 	bar := pb.StartNew(len(locations))
 
@@ -128,7 +116,7 @@ func main() {
 						outline = "\"" + cell + "\""
 						//	outline = cell
 					} else {
-						if x == 11 && len(cell) == 0 && cmds.UseTimezone == true {
+						if x == 11 && len(cell) == 0 && tz == true {
 							isocityreserve = true
 						} else {
 							outline = outline[:index] + ",\"" + cell + "\""
@@ -136,7 +124,7 @@ func main() {
 						}
 					}
 				} else {
-					if x == 13 && isocityreserve == true && cmds.UseTimezone == true {
+					if x == 13 && isocityreserve == true && tz == true {
 						isocity := strings.Split(cell, "/")
 						outline = outline[:index] + ",\"" + isocity[1] + "\""
 					}
@@ -162,7 +150,11 @@ func main() {
 
 	// End of locations, now we do the data.
 
-	DataFile, err = os.Open(cmds.MaxMindCSV)
+	s := spinner.StartNew("Loading MaxMind Blocks data.")
+	s.SetSpeed(100 * time.Millisecond)
+	//s.SetCharset([]string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"})
+	s.SetCharset([]string{"\U0001F311", "\U0001F312", "\U0001F313", "\U0001F314", "\U0001F315", "\U0001F316", "\U0001F317", "\U0001F318"})
+	DataFile, err = os.Open(mmcsv)
 	if err != nil {
 		panic(err)
 	}
@@ -177,10 +169,14 @@ func main() {
 	csvreader.ReuseRecord = true
 	csvreader.LazyQuotes = false
 
+	// Stick in spinner, this can take a while.
 	blocks, err = csvreader.ReadAll()
 	if err != nil {
 		panic(err)
 	}
+
+	s.Stop()
+	//end the Spinner
 
 	if DEBUG == true {
 		fmt.Printf("Columns: %d\n", csvreader.FieldsPerRecord)
@@ -188,10 +184,21 @@ func main() {
 
 	fmt.Printf("Cross-referencing and creating data.\n")
 
-	csvOut, err := os.OpenFile(cmds.Ip2Location, os.O_CREATE|os.O_WRONLY, 0777)
+	TempFile = TempFileName("ip2location", "csv", tmpdir[0])
+
+	csvOut, err := os.OpenFile(TempFile, os.O_CREATE|os.O_WRONLY, 0777)
 	if err != nil {
+		fmt.Printf("Unable to create %s.", TempFile)
 		panic(err)
 	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	go func() {
+		<-sigs
+		cleanupTemp(TempFile)
+		os.Exit(0)
+	}()
 
 	bar = pb.StartNew(len(blocks))
 
@@ -284,6 +291,7 @@ func main() {
 	csvOut.Sync()
 	csvOut.Close()
 
+	return TempFile
 }
 
 // Thank you Valentyn Ponomarenko! https://gist.github.com/P-A-R-U-S/3c54bacef489499e2b44a075fdab6af0
@@ -339,4 +347,24 @@ func uInt32ToIPv4(iPuInt32 uint32) (iP string) {
 		(iPuInt32&0x0000FFFF)>>8,
 		iPuInt32&0x000000FF)
 	return iP
+}
+
+// TempFileName generates a temporary filename for use in testing or whatever
+func TempFileName(prefix string, suffix string, tmpdir ...string) string {
+	var dir string
+
+	if len(tmpdir[0]) != 0 {
+		dir = tmpdir[0]
+	} else {
+		dir = os.TempDir()
+	}
+	randBytes := make([]byte, 16)
+	rand.Read(randBytes)
+	return filepath.Join(dir, prefix+hex.EncodeToString(randBytes)+"."+suffix)
+}
+
+func cleanupTemp(tmp string) {
+	if len(tmp) != 0 {
+		os.Remove(tmp)
+	}
 }

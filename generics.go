@@ -5,6 +5,28 @@ import (
 	"strings"
 )
 
+type CsvFormat interface {
+	Id() string
+	DbOutHdr() string
+	IsMaxDB(int) bool
+	MaxDB() int
+	DoSkipLine(int) bool
+	DoSkipCol(int) bool
+}
+
+type GenericCsvFormat struct {
+	Ident      string
+	Iprangecol int
+	Dbrangemax []int
+	Skiplines  []int
+	Skipcols   []int
+	Header     string
+	Formatin   int
+	RedisCMD   string
+	Autodetect bool
+	Status     bool
+}
+
 func (g GenericCsvFormat) Id() string {
 	return g.Ident
 }
@@ -71,6 +93,7 @@ func ip2long(ip string) int {
 }
 
 // genericCsv is just a template
+/*
 func genericCsv(informat int, autodetect bool) (g GenericCsvFormat) {
 
 	g = GenericCsvFormat{
@@ -95,3 +118,4 @@ func genericCsv(informat int, autodetect bool) (g GenericCsvFormat) {
 
 	return g
 }
+*/

@@ -5,44 +5,41 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/cheggaaa/pb"
+	m2i "github.com/consultent/geoip2redis/pkg/maxmind_ip2location"
+	spinner "github.com/consultent/go-spinner"
 	"github.com/go-redis/redis"
 	argue "github.com/rburmorrison/go-argue"
 )
 
 type cmdline struct {
 	CsvFile         string `options:"required,positional" help:"CSV file with GeoIP data"`
-	Format          string `init:"f" options:"required" help:"ip2location|software77"`
+	Format          string `init:"f" options:"required" help:"ip2location|maxmind"`
 	RedisHost       string `init:"r" help:"Redis Host, default 127.0.0.1"`
 	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
 	RedisPass       string `init:"a" help:"Redis DB password, default none"`
 	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
 	ForceDbhdr      string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
-	ForceAutodetect bool   `init:"t" help:"Force autodetect.  Optional.  This will ignore input precision, and set a default header"`
-	SkipHeader      bool   `init:"s" help:"Foce skip the first CSV line. Default: follows format, see README.TXT"`
+	ForceAutodetect bool   `init:"t" help:"Force autodetect of database type, NOT format.  Optional.  This will ignore input precision, and set a default header"`
+	SkipHeader      bool   `init:"s" help:"Force skip the first CSV line. Default: follows format, see README.TXT"`
+	TempDir         string `init:"c" help:"Set temporary work directory for conversions. Default: ./"`
+	MaxmindLocation string `init:"m" help:"Maxmind 'location' CSV file. Only specify when '--format maxmind'"`
+	UseTimezone     bool   `init:"z" help:"Fallback to Timezone city, when there's no data. (For MaxMind)"`
 }
 
-type GenericCsvFormat struct {
-	Ident      string
-	Iprangecol int
-	Dbrangemax []int
-	Skiplines  []int
-	Skipcols   []int
-	Header     string
-	Formatin   int
-	RedisCMD   string
-	Autodetect bool
-	Status     bool
-}
-
-const pver = "0.9.3"
+// MaxMindCSV is now CsvFile, Ip2Location string is now a temp file (which will be the real CsvFile)
+const pver = "1.0.0"
 
 var gitver = "undefined"
 
 var DEBUG = false
+
+var TempFile string
 
 func main() {
 
@@ -62,19 +59,42 @@ func main() {
 	var Ip2info Ip2LocationCSV
 	var S77info Software77CSV
 
+	//	var CSVFile string
+
 	//	var zcmd int64
 	//      var fakedata struct{}
 
-	fmt.Printf("GeoIP2Redis (c) 2021 ConsulTent Pte. Ltd. v%s-%s\n", pver, gitver)
+	fmt.Printf("GeoIP2Redis (c) 2021 ConsulTent Pte. Ltd. v%s build:%s\n", pver, gitver)
 
 	agmt := argue.NewEmptyArgumentFromStruct(&cmds)
 
 	agmt.Dispute(true)
 
+	if len(cmds.TempDir) != 0 {
+		_, err := os.Stat(cmds.TempDir)
+		if os.IsNotExist(err) {
+			cleanupTemp()
+			log.Fatal(fmt.Sprintf("Temp directory %s does not exist.", cmds.TempDir))
+		}
+	}
+
 	switch cmds.Format {
 	case "maxmind":
-		fmt.Println("maxmind is not supported yet")
-		os.Exit(1)
+		if len(cmds.MaxmindLocation) == 0 {
+			fmt.Println("Please specify MaxMind location csv data file.")
+			os.Exit(1)
+		}
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGHUP)
+		go func() {
+			<-sigs
+			cleanupTemp()
+			os.Exit(0)
+		}()
+
+		TempFile = m2i.MaxMind_Merge(cmds.CsvFile, cmds.MaxmindLocation, cmds.UseTimezone, cmds.TempDir)
+
+		fallthrough
 	case "ip2location":
 		Ip2info = ip2location(cmds.InPrecision, cmds.ForceAutodetect)
 		CSVinfo = Ip2info.GenericCsvFormat
@@ -88,7 +108,7 @@ func main() {
 	case "ip2location/asn":
 		// ASN is a hack and broken.  We need to create a new definition for it
 		// and use ip2long
-		fmt.Println("ASN not supported.")
+		fmt.Println("ASN not supported yet.")
 		os.Exit(2)
 		if cmds.ForceAutodetect == false {
 			fmt.Println("ASN format only available with autodetect")
@@ -98,6 +118,7 @@ func main() {
 		CSVinfo = Ip2info.GenericCsvFormat
 		CSVinfo.Header = "ASN"
 	case "software77":
+		fmt.Println("WARNING: Software77 support is legacy and deprecated.")
 		S77info = software77(cmds.InPrecision)
 		CSVinfo = S77info.GenericCsvFormat
 	default:
@@ -114,8 +135,11 @@ func main() {
 		fmt.Println("WARNING: Skipping header!")
 	}
 
-	csvFile, err := os.Open(cmds.CsvFile)
+	s := spinner.StartNew("Reading in CSV data.")
+	s.SetCharset([]string{"\U0001F311", "\U0001F312", "\U0001F313", "\U0001F314", "\U0001F315", "\U0001F316", "\U0001F317", "\U0001F318"})
+	csvFile, err := os.Open(TempFile)
 	if err != nil {
+		cleanupTemp()
 		panic(err)
 	}
 	defer csvFile.Close()
@@ -130,6 +154,7 @@ func main() {
 
 	samples, err = csvreader.ReadAll()
 	if err != nil {
+		cleanupTemp()
 		panic(err)
 	}
 
@@ -145,34 +170,36 @@ func main() {
 
 	if CSVinfo.Autodetect == true {
 		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) == true {
-			fmt.Printf("Warning: Detected too many fields (%d), max is (%d), proceed with caution!\n", csvreader.FieldsPerRecord, CSVinfo.MaxDB())
+			fmt.Printf("\nWarning: Detected too many fields (%d), max is (%d), proceed with caution!\n", csvreader.FieldsPerRecord, CSVinfo.MaxDB())
 		}
-		fmt.Printf("Using set %s for autodetection\n", DBHDR)
+		fmt.Printf("\nUsing set %s for autodetection\n", DBHDR)
 	}
 
 	if DEBUG == true {
 		fmt.Printf("DBHDR: %s, %d, %s\n", DBHDR, CSVinfo.Formatin, CSVinfo.DbOutHdr())
 	} else {
-		fmt.Printf("Loading into set %s\n", DBHDR)
+		fmt.Printf("\nLoading into set %s\n", DBHDR)
 	}
 
 	bcounter = len(samples)
 
-	// Put the redis connection stuff here
+	s.Stop()
 
-	if DEBUG == true {
-		fmt.Printf("RedisHost: %s, RedisPort: %d\n", cmds.RedisHost, cmds.RedisPort)
-	}
+	// Put the redis connection stuff here
+	s = spinner.StartNew(fmt.Sprintf("Connecting to Redis server: %s:%d", cmds.RedisHost, cmds.RedisPort))
 
 	redisClient := redis.NewClient(&redis.Options{Addr: fmt.Sprintf("%v:%v", cmds.RedisHost, cmds.RedisPort),
 		Password: cmds.RedisPass, DB: 0, ReadTimeout: time.Minute, WriteTimeout: time.Minute})
 	_, err = redisClient.Ping().Result()
 	if err != nil {
+		cleanupTemp()
 		log.Printf("[ERROR] unable to ping redis client, error : %v", err)
 		os.Exit(1)
 	}
 
 	defer redisClient.Close()
+
+	s.Stop()
 
 	rep, err := redisClient.Keys(DBHDR).Result()
 	if err != nil {
@@ -216,6 +243,7 @@ func main() {
 			// if DEBUG == true { fmt.Printf("REDIS<: %s\nx: %d, i: %d\n", rediscmd, x, i) }
 			_, err = redisClient.Do(CSVinfo.RedisCMD, DBHDR, iprange, rediscmd).Result()
 			if err != nil {
+				cleanupTemp()
 				panic(err)
 			}
 
@@ -235,6 +263,7 @@ func main() {
 	if finalcount-bcounter != 0 {
 		fmt.Println("Loaded count mismatch: ", finalcount)
 		fmt.Println("Please do manual clean up of ", DBHDR)
+		cleanupTemp()
 		os.Exit(2)
 	}
 
@@ -251,5 +280,13 @@ func main() {
 		}
 	}
 
+	cleanupTemp()
+
 	fmt.Printf("Loaded %d entries into Redis\n", i)
+}
+
+func cleanupTemp() {
+	if len(TempFile) != 0 {
+		os.Remove(TempFile)
+	}
 }

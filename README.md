@@ -7,15 +7,36 @@ Loader of Multiple GeoIP providers to Redis.  Now with **[LIVE MIGRATION](https:
 ##### The goal of GeoIP2Redis is to standardise all GeoIP formats into a standard CSV format (based on Ip2Location) that can be queried using Redis via subkeys.
 
 
-We currently support the following providers (* partially)
+**Why GeoIP via Redis?**  
+
+* It's FAST!  
+* Much faster than a REST API.
+* Low Latency:
+  * Local vs Internet traffic
+  * Much less overhead via Redis protocol vs HTTP
+
+We currently fully support the following providers:
 
 * [IP2Location](https://lite.ip2location.com/database/ip-country)
-* [Software77](http://software77.net/geo-ip/)
-* [Maxmind](https://www.maxmind.com/en/geoip2-databases)*  (See tools/tools/maxmind-ip2location and [Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki))
+* ~~[Software77](http://software77.net/geo-ip/)~~
+* [MaxMind](https://www.maxmind.com/en/geoip2-databases)  (See tools/maxmind-ip2location-to-csv and [Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki))
 
-GeoIP2Redis primarily supports DB1 from IP2Location, but with Auto mode enabled can load any of their standard IPv4 databases.
-It can also load Software77's database either in it's native format, or convert it on the fly to IP2Location format, making them interchangeable.  *
-Please see the Wiki for Maxmind support.
+---
+
++ GeoIP2Redis primarily supports DB1 & DB3 DB formats from IP2Location.  Through conversion, we also fully support MaxMind's Block and Location databases.  We also provide a tool to convert MaxMind's Blocks and Location tables to a unified IP2Location format.
++ ~~It can also load Software77's database either in it's native format, or convert it on the fly to IP2Location format, making them interchangeable.  *~~  Software77 is gone, and support is now deprecated.
+
+
+
+Please see the Wiki for usage and additional MaxMind support.
+
+---
+
+**Coming Soon**
+* [ipgeolocation](https://ipgeolocation.io/)
+* [dbip](https://db-ip.com/db/)
+
+
 
 
 ### Examples:
@@ -30,7 +51,7 @@ Please check out the [the Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki) 
 ### TODO
 1. Testing - need to add golang tests
 2. ASN support for ip2location.
-3. Add more GEOIP sources.   Suggestions welcome!
+3. Add more GEOIP sources.   **Suggestions welcome!**
 
 
 ### Disclaimer
