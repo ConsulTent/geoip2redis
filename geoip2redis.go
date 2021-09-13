@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	m2i "github.com/consultent/geoip2redis/pkg/maxmind_ip2location"
 	spinner "github.com/consultent/go-spinner"
 	"github.com/go-redis/redis"

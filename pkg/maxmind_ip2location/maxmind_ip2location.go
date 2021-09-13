@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	spinner "github.com/consultent/go-spinner"
 )
 
@@ -153,7 +153,8 @@ func MaxMind_Merge(mmcsv string, lcsv string, tz bool, tmpdir ...string) string 
 	s := spinner.StartNew("Loading MaxMind Blocks data.")
 	s.SetSpeed(100 * time.Millisecond)
 	//s.SetCharset([]string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"})
-	s.SetCharset([]string{"\U0001F311", "\U0001F312", "\U0001F313", "\U0001F314", "\U0001F315", "\U0001F316", "\U0001F317", "\U0001F318"})
+	//s.SetCharset([]string{"\U0001F311", "\U0001F312", "\U0001F313", "\U0001F314", "\U0001F315", "\U0001F316", "\U0001F317", "\U0001F318"})
+	s.SetCharset([]string{".", "o", "0", "@", "*"})
 	DataFile, err = os.Open(mmcsv)
 	if err != nil {
 		panic(err)
