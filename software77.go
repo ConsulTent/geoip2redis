@@ -13,9 +13,8 @@ func (g Software77CSV) Id() string {
 }
 
 func (g Software77CSV) DbOutHdr() string {
-	var header string
 
-	header = g.Header + strconv.Itoa(g.Formatin)
+	header := g.Header + strconv.Itoa(g.Formatin)
 	return header
 }
 

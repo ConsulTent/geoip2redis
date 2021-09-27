@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
+	ipgeolocation "github.com/consultent/geoip2redis/pkg/ipgeolocation_ip2location"
 	m2i "github.com/consultent/geoip2redis/pkg/maxmind_ip2location"
 	spinner "github.com/consultent/go-spinner"
 	"github.com/go-redis/redis"
@@ -19,7 +20,7 @@ import (
 
 type cmdline struct {
 	CsvFile         string `options:"required,positional" help:"CSV file with GeoIP data"`
-	Format          string `init:"f" options:"required" help:"ip2location|maxmind"`
+	Format          string `init:"f" options:"required" help:"ip2location|maxmind|ipgeolocation"`
 	RedisHost       string `init:"r" help:"Redis Host, default 127.0.0.1"`
 	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
 	RedisPass       string `init:"a" help:"Redis DB password, default none"`
@@ -28,7 +29,7 @@ type cmdline struct {
 	ForceAutodetect bool   `init:"t" help:"Force autodetect of database type, NOT format.  Optional.  This will ignore input precision, and set a default header"`
 	SkipHeader      bool   `init:"s" help:"Force skip the first CSV line. Default: follows format, see README.TXT"`
 	TempDir         string `init:"c" help:"Set temporary work directory for conversions. Default: ./"`
-	MaxmindLocation string `init:"m" help:"Maxmind 'location' CSV file. Only specify when '--format maxmind'"`
+	ReferenceHash   string `init:"m" help:"Reference csv hash file for Maxmind|ipgeolocation. Either Maxmind 'location' CSV file, or ipgeolocation db-country.csv. Use based on --format as needed."`
 	UseTimezone     bool   `init:"z" help:"Fallback to Timezone city, when there's no data. (For MaxMind)"`
 }
 
@@ -55,6 +56,8 @@ func main() {
 	var bcounter int
 	var finalcount int
 
+	var ip2format bool = false
+
 	var CSVinfo GenericCsvFormat
 	var Ip2info Ip2LocationCSV
 	var S77info Software77CSV
@@ -78,39 +81,29 @@ func main() {
 		}
 	}
 
+	// Setup signal catcher cleanup thread
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		cleanupTemp()
+		os.Exit(0)
+	}()
+
 	switch cmds.Format {
 	case "maxmind":
-		if len(cmds.MaxmindLocation) == 0 {
+		if len(cmds.ReferenceHash) == 0 {
 			fmt.Println("Please specify MaxMind location csv data file.")
 			os.Exit(1)
 		}
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGHUP)
-		go func() {
-			<-sigs
-			cleanupTemp()
-			os.Exit(0)
-		}()
-
-		TempFile = m2i.MaxMind_Merge(cmds.CsvFile, cmds.MaxmindLocation, cmds.UseTimezone, cmds.TempDir)
-
-		fallthrough
-	case "ip2location":
-		Ip2info = ip2location(cmds.InPrecision, cmds.ForceAutodetect)
-		CSVinfo = Ip2info.GenericCsvFormat
-		if CSVinfo.Status == false {
-			fmt.Printf("Database format out of range for %s\n", cmds.Format)
-			os.Exit(1)
-		}
-		if CSVinfo.Autodetect == true {
-			fmt.Println("Autodetecting ip2location db format.")
-		}
+		TempFile = m2i.MaxMind_Merge(cmds.CsvFile, cmds.ReferenceHash, cmds.UseTimezone, cmds.TempDir)
+		ip2format = true
 	case "ip2location/asn":
 		// ASN is a hack and broken.  We need to create a new definition for it
 		// and use ip2long
 		fmt.Println("ASN not supported yet.")
 		os.Exit(2)
-		if cmds.ForceAutodetect == false {
+		if !cmds.ForceAutodetect {
 			fmt.Println("ASN format only available with autodetect")
 			os.Exit(1)
 		}
@@ -121,9 +114,29 @@ func main() {
 		fmt.Println("WARNING: Software77 support is legacy and deprecated.")
 		S77info = software77(cmds.InPrecision)
 		CSVinfo = S77info.GenericCsvFormat
+	case "ipgeolocation":
+		if len(cmds.ReferenceHash) == 0 {
+			fmt.Println("Please specify ipgeolocation country csv data file.")
+			os.Exit(1)
+		}
+		TempFile = ipgeolocation.IpGeoLocation_Merge(cmds.CsvFile, cmds.ReferenceHash, cmds.UseTimezone, cmds.TempDir)
+		ip2format = true
 	default:
 		fmt.Println("Unknown format, please see --help")
 		os.Exit(1)
+	}
+
+	// Everything eventually defaults to IP2Location
+	if ip2format {
+		Ip2info = ip2location(cmds.InPrecision, cmds.ForceAutodetect)
+		CSVinfo = Ip2info.GenericCsvFormat
+		if !CSVinfo.Status {
+			fmt.Printf("Database format out of range for %s\n", cmds.Format)
+			os.Exit(1)
+		}
+		if CSVinfo.Autodetect {
+			fmt.Println("Autodetecting ip2location db format.")
+		}
 	}
 
 	if len(cmds.RedisHost) == 0 || cmds.RedisPort == 0 {
@@ -131,7 +144,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cmds.SkipHeader == true {
+	if cmds.SkipHeader {
 		fmt.Println("WARNING: Skipping header!")
 	}
 
@@ -158,7 +171,7 @@ func main() {
 		panic(err)
 	}
 
-	if DEBUG == true {
+	if DEBUG {
 		fmt.Printf("Columns: %d\n", csvreader.FieldsPerRecord)
 	}
 
@@ -168,14 +181,14 @@ func main() {
 		DBHDR = cmds.ForceDbhdr
 	}
 
-	if CSVinfo.Autodetect == true {
-		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) == true {
+	if CSVinfo.Autodetect {
+		if CSVinfo.IsMaxDB(csvreader.FieldsPerRecord) {
 			fmt.Printf("\nWarning: Detected too many fields (%d), max is (%d), proceed with caution!\n", csvreader.FieldsPerRecord, CSVinfo.MaxDB())
 		}
 		fmt.Printf("\nUsing set %s for autodetection\n", DBHDR)
 	}
 
-	if DEBUG == true {
+	if DEBUG {
 		fmt.Printf("DBHDR: %s, %d, %s\n", DBHDR, CSVinfo.Formatin, CSVinfo.DbOutHdr())
 	} else {
 		fmt.Printf("\nLoading into set %s\n", DBHDR)
@@ -218,8 +231,8 @@ func main() {
 	for _, sample := range samples {
 		x = 0 // x is the inner column range
 		for _, cell := range sample {
-			if CSVinfo.DoSkipLine(i) == false {
-				if CSVinfo.DoSkipCol(x) == false {
+			if !CSVinfo.DoSkipLine(i) {
+				if !CSVinfo.DoSkipCol(x) {
 					//push unto string array
 					index = len(rediscmd)
 					if x == CSVinfo.Iprangecol {

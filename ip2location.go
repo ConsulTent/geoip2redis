@@ -24,7 +24,7 @@ func ip2location(informat int, autodetect bool) (g Ip2LocationCSV) {
 		g.GenericCsvFormat.Status = false
 	}
 
-	if autodetect == true {
+	if autodetect {
 		g.GenericCsvFormat.Autodetect = true
 	}
 
