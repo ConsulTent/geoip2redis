@@ -4,6 +4,8 @@
 
 Loader of Multiple GeoIP providers to Redis.  Now with **[LIVE MIGRATION](https://github.com/ConsulTent/geoip2redis/wiki/Live-Migration)**!
 
+![geoip-docker2](https://user-images.githubusercontent.com/691270/166111897-80b09371-3eaa-498a-adc8-77e6e5c4cff0.gif)
+
 ##### The goal of GeoIP2Redis is to standardise all GeoIP formats into a standard CSV format (based on Ip2Location) that can be queried using Redis via subkeys.
 
 
@@ -19,7 +21,7 @@ We currently fully support the following providers:
 
 * [IP2Location](https://lite.ip2location.com/database/ip-country)
 * ~~[Software77](http://software77.net/geo-ip/)~~
-* [MaxMind](https://www.maxmind.com/en/geoip2-databases)  (See tools/maxmind-ip2location-to-csv and [Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki))
+* [MaxMind](https://www.maxmind.com/en/geoip2-databases)  (See [Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki))
 
 ---
 
@@ -31,6 +33,8 @@ We currently fully support the following providers:
 Please see the Wiki for usage and additional MaxMind support.
 
 ---
+
+Basic **Telemetry** is included.  Please see the [Wiki](https://github.com/ConsulTent/geoip2redis/wiki/Telemetry).
 
 **Coming Soon**
 * [ipgeolocation](https://ipgeolocation.io/)
@@ -55,7 +59,7 @@ Please check out the [the Wiki](https://github.com/ConsulTent/GeoIP2Redis/wiki) 
 
 
 ### Disclaimer
-IP2Location, Maxmind, Software77 and Redis are trademarks of respective owners.
+IP2Location, Maxmind, Software77 and Redis are trademarks of their respective owners.
 
 
 (c) 2021 ConsulTent Pte. Ltd.  https://consultent.ltd

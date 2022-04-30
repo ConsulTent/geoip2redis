@@ -12,28 +12,30 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	m2i "github.com/consultent/geoip2redis/pkg/maxmind_ip2location"
+	telemetry "github.com/consultent/geoip2redis/pkg/telemetry"
 	spinner "github.com/consultent/go-spinner"
 	"github.com/go-redis/redis"
 	argue "github.com/rburmorrison/go-argue"
 )
 
 type cmdline struct {
-	CsvFile         string `options:"required,positional" help:"CSV file with GeoIP data"`
-	Format          string `init:"f" options:"required" help:"ip2location|maxmind"`
-	RedisHost       string `init:"r" help:"Redis Host, default 127.0.0.1"`
-	RedisPort       int    `init:"p" help:"Redis Port, default 6379"`
-	RedisPass       string `init:"a" help:"Redis DB password, default none"`
-	InPrecision     int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
-	ForceDbhdr      string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
-	ForceAutodetect bool   `init:"t" help:"Force autodetect of database type, NOT format.  Optional.  This will ignore input precision, and set a default header"`
-	SkipHeader      bool   `init:"s" help:"Force skip the first CSV line. Default: follows format, see README.TXT"`
-	TempDir         string `init:"c" help:"Set temporary work directory for conversions. Default: ./"`
-	MaxmindLocation string `init:"m" help:"Maxmind 'location' CSV file. Only specify when '--format maxmind'"`
-	UseTimezone     bool   `init:"z" help:"Fallback to Timezone city, when there's no data. (For MaxMind)"`
+	CsvFile          string `options:"required,positional" help:"CSV file with GeoIP data"`
+	Format           string `init:"f" options:"required" help:"ip2location|maxmind"`
+	RedisHost        string `init:"r" help:"Redis Host, default 127.0.0.1"`
+	RedisPort        int    `init:"p" help:"Redis Port, default 6379"`
+	RedisPass        string `init:"a" help:"Redis DB password, default none"`
+	InPrecision      int    `init:"i" options:"required" help:"Input precision. Optional. This would be db file number. 1=DB1 for ip2location. Default is autodetect.  See README.TXT"`
+	ForceDbhdr       string `init:"d" help:"Force a custom subkey where the GeoIP data will be stored, instead of using defaults."`
+	ForceAutodetect  bool   `init:"t" help:"Force autodetect of database type, NOT format.  Optional.  This will ignore input precision, and set a default header"`
+	SkipHeader       bool   `init:"s" help:"Force skip the first CSV line. Default: follows format, see README.TXT"`
+	TempDir          string `init:"c" help:"Set temporary work directory for conversions. Default: ./"`
+	MaxmindLocation  string `init:"m" help:"Maxmind 'location' CSV file. Only specify when '--format maxmind'"`
+	UseTimezone      bool   `init:"z" help:"Fallback to Timezone city, when there's no data. (For MaxMind)"`
+	DontUseTelemetry bool   `init:"l" help:"Don't send feedback telemetry data. (see docs)"`
 }
 
 // MaxMindCSV is now CsvFile, Ip2Location string is now a temp file (which will be the real CsvFile)
-const pver = "1.0.0"
+const pver = "1.0.1"
 
 var gitver = "undefined"
 
@@ -64,7 +66,7 @@ func main() {
 	//	var zcmd int64
 	//      var fakedata struct{}
 
-	fmt.Printf("GeoIP2Redis (c) 2021 ConsulTent Pte. Ltd. v%s build:%s\n", pver, gitver)
+	fmt.Printf("GeoIP2Redis (c) 2021 ConsulTent Pte. Ltd. v%s build:%s (https://github.com/ConsulTent/geoip2redis)\n", pver, gitver)
 
 	agmt := argue.NewEmptyArgumentFromStruct(&cmds)
 
@@ -76,6 +78,12 @@ func main() {
 			cleanupTemp()
 			log.Fatal(fmt.Sprintf("Temp directory %s does not exist.", cmds.TempDir))
 		}
+	}
+
+	// Telemetry feedback
+
+	if cmds.DontUseTelemetry != true {
+		go telemetry.Send("v"+pver+"-"+gitver, cmds.Format, "DB"+strconv.Itoa(cmds.InPrecision))
 	}
 
 	switch cmds.Format {
